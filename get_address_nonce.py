@@ -4,7 +4,7 @@ from stellar_sdk import xdr as stellar_xdr
 from stellar_sdk.soroban import SorobanServer
 from stellar_sdk.soroban_types.address import Address
 
-RPC_SERVER = "https://horizon-futurenet.stellar.cash/soroban/rpc"
+rpc_server_url = "https://horizon-futurenet.stellar.cash/soroban/rpc"
 
 contract_id = "8542841a633aafc771f07bc472b7a799fa2e82cced417356505f569daaaedc47"
 account_id = "GBMLPRFCZDZJPKUPHUSHCKA737GOZL7ERZLGGMJ6YGHBFJZ6ZKMKCZTM"
@@ -21,7 +21,7 @@ def get_address_nonce():
             ),
         )
     )
-    with SorobanServer(RPC_SERVER) as server:
+    with SorobanServer(rpc_server_url) as server:
         response = server.get_ledger_entry(ledger_key)
         print(response)
 
