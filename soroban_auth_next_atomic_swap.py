@@ -42,9 +42,12 @@ def get_nonce(account_id) -> int:
             ),
         )
     )
-    response = soroban_server.get_ledger_entry(ledger_key)
-    data = stellar_xdr.LedgerEntryData.from_xdr(response.xdr)
-    return data.contract_data.val.obj.u64.uint64
+    try:
+        response = soroban_server.get_ledger_entry(ledger_key)
+        data = stellar_xdr.LedgerEntryData.from_xdr(response.xdr)
+        return data.contract_data.val.obj.u64.uint64
+    except:
+        return 0
 
 
 args = [

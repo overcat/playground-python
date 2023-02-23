@@ -1,4 +1,5 @@
 import time
+import binascii
 
 from stellar_sdk import Network, Keypair, TransactionBuilder
 from stellar_sdk import xdr as stellar_xdr
@@ -23,10 +24,25 @@ op_invoker_kp = Keypair.from_secret(
     "SAEZSI6DY7AXJFIYA4PM6SIBNEYYXIEM2MSOTHFGKHDW32MBQ7KVO6EN"
 )
 
-# please check get_address_nonce.py to get the nonce,
-# but I'm currently unable to get the nonce in the ledger entity,
-# maybe the default value is 0?
-nonce = 0
+def get_nonce(account_id) -> int:
+    ledger_key = stellar_xdr.LedgerKey.from_contract_data(
+        stellar_xdr.LedgerKeyContractData(
+            contract_id=stellar_xdr.Hash(binascii.unhexlify(contract_id)),
+            key=stellar_xdr.SCVal.from_scv_object(
+                stellar_xdr.SCObject.from_sco_nonce_key(
+                    Address(account_id)._to_xdr_sc_address()
+                )
+            ),
+        )
+    )
+    try:
+        response = soroban_server.get_ledger_entry(ledger_key)
+        data = stellar_xdr.LedgerEntryData.from_xdr(response.xdr)
+        return data.contract_data.val.obj.u64.uint64
+    except:
+        return 0
+
+nonce = get_nonce(op_invoker_kp.public_key)
 func_name = "increment"
 args = [Address(op_invoker_kp.public_key), Uint32(10)]
 
