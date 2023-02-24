@@ -7,9 +7,8 @@ from stellar_sdk.authorized_invocation import AuthorizedInvocation
 from stellar_sdk.contract_auth import ContractAuth
 from stellar_sdk.soroban import SorobanServer
 from stellar_sdk.soroban.soroban_rpc import TransactionStatus
-from stellar_sdk.soroban_types import Address, AccountEd25519Signature
+from stellar_sdk.soroban_types import Address
 from stellar_sdk.soroban_types import Bytes, Int128
-from stellar_sdk.utils import sha256
 
 rpc_server_url = "https://horizon-futurenet.stellar.cash:443/soroban/rpc"
 soroban_server = SorobanServer(rpc_server_url)
@@ -79,22 +78,13 @@ alice_root_invocation = AuthorizedInvocation(
             function_name="incr_allow",
             args=[
                 Address(alice_kp.public_key),  # owner
-                Address.from_contract(atomic_swap_contract_id),
+                Address.from_raw_contract(atomic_swap_contract_id),
                 Int128(1000)
             ],
             sub_invocations=[]
         )
     ]
 )
-alice_root_invocation_preimage = stellar_xdr.HashIDPreimage.from_envelope_type_contract_auth(
-    stellar_xdr.HashIDPreimageContractAuth(
-        network_id=stellar_xdr.Hash(network_id),
-        nonce=stellar_xdr.Uint64(alice_nonce),
-        invocation=alice_root_invocation.to_xdr_object(),
-    )
-)
-alice_contract_auth_signature = AccountEd25519Signature(alice_kp, alice_kp.sign(
-    sha256(alice_root_invocation_preimage.to_xdr_bytes())))
 
 bob_root_invocation = AuthorizedInvocation(
     contract_id=atomic_swap_contract_id,
@@ -111,22 +101,26 @@ bob_root_invocation = AuthorizedInvocation(
             function_name="incr_allow",
             args=[
                 Address(bob_kp.public_key),  # owner
-                Address.from_contract(atomic_swap_contract_id),
+                Address.from_raw_contract(atomic_swap_contract_id),
                 Int128(5000)
             ],
             sub_invocations=[]
         )
     ]
 )
-bob_root_invocation_preimage = stellar_xdr.HashIDPreimage.from_envelope_type_contract_auth(
-    stellar_xdr.HashIDPreimageContractAuth(
-        network_id=stellar_xdr.Hash(network_id),
-        nonce=stellar_xdr.Uint64(bob_nonce),
-        invocation=bob_root_invocation.to_xdr_object(),
-    )
+
+alice_contract_auth = ContractAuth(
+    address=Address(alice_kp.public_key),
+    nonce=alice_nonce,
+    root_invocation=alice_root_invocation,
 )
-bob_contract_auth_signature = AccountEd25519Signature(bob_kp,
-                                                      bob_kp.sign(sha256(bob_root_invocation_preimage.to_xdr_bytes())))
+alice_contract_auth.sign(alice_kp, network_passphrase)
+bob_contract_auth = ContractAuth(
+    address=Address(bob_kp.public_key),
+    nonce=bob_nonce,
+    root_invocation=bob_root_invocation,
+)
+bob_contract_auth.sign(bob_kp, network_passphrase)
 
 tx = (
     TransactionBuilder(source, network_passphrase)
@@ -136,18 +130,7 @@ tx = (
         method="swap",
         parameters=args,
         auth=[
-            ContractAuth(
-                address=Address(alice_kp.public_key),
-                nonce=alice_nonce,
-                root_invocation=alice_root_invocation,
-                signature_args=[alice_contract_auth_signature]
-            ),
-            ContractAuth(
-                address=Address(bob_kp.public_key),
-                nonce=bob_nonce,
-                root_invocation=bob_root_invocation,
-                signature_args=[bob_contract_auth_signature]
-            ),
+            alice_contract_auth, bob_contract_auth
         ],
     )
     .build()
