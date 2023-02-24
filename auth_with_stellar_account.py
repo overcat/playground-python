@@ -34,7 +34,7 @@ def get_nonce(account_id) -> int:
             contract_id=stellar_xdr.Hash(binascii.unhexlify(contract_id)),
             key=stellar_xdr.SCVal.from_scv_object(
                 stellar_xdr.SCObject.from_sco_nonce_key(
-                    Address(account_id)._to_xdr_sc_address()
+                    Address(account_id).to_xdr_sc_address()
                 )
             ),
         )
